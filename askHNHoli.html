@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FRENDO_AI - FINAL ENTERPRISE</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+        body, html { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; font-family: 'Inter', sans-serif; background: #ffffff; }
+        #exam-frame { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: 1; }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85); 
+            backdrop-filter: blur(30px) saturate(200%); 
+            -webkit-backdrop-filter: blur(30px) saturate(200%);
+            border-radius: 35px; 
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1), inset 0 0 0 1px rgba(255,255,255,0.4); 
+            z-index: 9999; display: flex; flex-direction: column; overflow: hidden;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        #ai-sidebar { position: fixed; top: 15px; right: -450px; width: 360px; height: calc(100% - 30px); opacity: 0; transform: scale(0.98); }
+        #history-drawer { position: fixed; top: 15px; left: -450px; width: 300px; height: calc(100% - 30px); z-index: 10000; opacity: 0; }
+
+        #ai-sidebar.active { right: 15px; opacity: 1; transform: scale(1); }
+        #history-drawer.active { left: 15px; opacity: 1; transform: scale(1); }
+        
+        .panel-header { 
+            padding: 20px 25px; color: #1a1a1a; font-weight: 800; font-size: 10px; letter-spacing: 1px;
+            display: flex; justify-content: space-between; align-items: center; 
+            background: rgba(0, 0, 0, 0.02); border-bottom: 1px solid rgba(0,0,0,0.05); text-transform: uppercase;
+        }
+
+        .system-info { display: flex; gap: 10px; font-size: 9px; color: #888; margin-top: 5px; }
+        .status-dot { width: 8px; height: 8px; background: #ff3b30; border-radius: 50%; display: inline-block; margin-right: 5px; box-shadow: 0 0 10px #ff3b30; transition: 0.3s; }
+        
+        #ai-content, #history-list { flex: 1; padding: 25px; overflow-y: auto; font-size: 13.5px; color: #1a1a1a; line-height: 1.7; scroll-behavior: smooth; }
+        #ai-content::-webkit-scrollbar { width: 0; }
+
+        .ai-msg { 
+            background: #ffffff; padding: 18px; border-radius: 22px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            margin-bottom: 22px; color: #1a1a1a; font-weight: 500; 
+            animation: popIn 0.4s ease-out forwards;
+            position: relative; display: block;
+        }
+
+        .u-label { color:#bbb; font-size:10px; margin-top:15px; font-weight:800; text-transform:uppercase; letter-spacing:1px; }
+
+        #ai-input-area { padding: 15px 20px 30px 20px; display: none; gap: 10px; background: rgba(0,0,0,0.02); border-top: 1px solid rgba(0,0,0,0.05); }
+        #ai-input { flex: 1; background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 18px; padding: 14px 20px; outline: none; }
+        
+        .btn { background: #000; color: #fff; border: none; border-radius: 18px; font-weight: 700; cursor: pointer; padding: 12px 25px; transition: 0.3s; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+
+        .icon-btn { cursor:pointer; font-size: 18px; opacity: 0.4; transition: 0.3s; }
+        .icon-btn:hover { opacity: 1; }
+
+        #sidebar-trigger { position: fixed; top: 40%; right: 0; width: 10px; height: 100px; background: rgba(0, 0, 0, 0.15); border-radius: 12px 0 0 12px; z-index: 9998; cursor: pointer; }
+        .corp-footer { font-size: 9px; font-weight: 800; color: #ccc; letter-spacing: 4px; margin-top: 30px; text-transform: uppercase; }
+
+        @keyframes popIn { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+        .typing::after { content: '▋'; animation: blink 0.8s infinite; }
+        @keyframes blink { 50% { opacity: 0; } }
+    </style>
+</head>
+<body>
+
+    <iframe id="exam-frame" src="https://smpam.site/aum/index.php"></iframe>
+    <div id="sidebar-trigger" onclick="toggleSidebar()"></div>
+
+    <div id="history-drawer" class="glass-panel">
+        <div class="panel-header"><div>RIWAYAT</div><span class="icon-btn" onclick="toggleHistory()">×</span></div>
+        <div id="history-list"></div>
+        <div style="padding: 20px;"><button class="btn" style="width: 100%; background: #ff3b30;" onclick="clearHistory()">HAPUS</button></div>
+    </div>
+
+    <div id="ai-sidebar" class="glass-panel">
+        <div class="panel-header" style="flex-direction: column; align-items: flex-start;">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+                <div><span class="status-dot" id="status-light"></span> FRENDO_AI</div>
+                <div style="display: flex; gap: 15px;">
+                    <span id="logout-btn" class="icon-btn" style="display:none;" title="Logout" onclick="logout()">🚪</span>
+                    <span id="hist-btn" class="icon-btn" style="display:none;" onclick="toggleHistory()">🕒</span>
+                    <span class="icon-btn" onclick="closeSidebar()">×</span>
+                </div>
+            </div>
+            <div class="system-info">
+                <span id="bat-val">🔋 --%</span>
+                <span id="net-val">📶 Checking...</span>
+            </div>
+        </div>
+        
+        <div id="ai-content">
+            <div id="activation-panel" style="text-align: center; margin-top: 60px;">
+                <p style="font-size: 10px; font-weight: 800; color: #aaa; letter-spacing: 2px; margin-bottom: 20px;">LICENSE KEY REQUIRED</p>
+                <input type="text" id="license-key" style="width: 80%; padding: 15px; border-radius: 18px; border: 1px solid #eee; margin-bottom: 15px; text-align: center; outline: none; font-weight: 700;" placeholder="ENTER CODE">
+                <button class="btn" style="width: 85%;" onclick="checkLicense()">ACTIVATE SYSTEM</button>
+                <div class="corp-footer">FRENDO.CORPORATION.inc</div>
+            </div>
+        </div>
+
+        <div id="ai-input-area">
+            <input type="text" id="ai-input" placeholder="Tanya Frendo..." autocomplete="off">
+            <button class="btn" onclick="askGroq()">↑</button>
+        </div>
+    </div>
+
+    <script>
+        const GROQ_KEY = "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";
+        const LICENSE_DB = { "FRENDO ADMIN": "A", "FRENDO VIP": "V", "FRENDO FINAL": "F" };
+        
+        let chatHistory = JSON.parse(localStorage.getItem('frendo_history')) || [];
+        let currentConvo = [{role: "system", content: "Kamu adalah FRENDO_AI Enterprise."}];
+
+        // SYSTEM INFO (Baterai & Sinyal)
+        function updateSystemInfo() {
+            // Baterai
+            if (navigator.getBattery) {
+                navigator.getBattery().then(bat => {
+                    const updateBat = () => document.getElementById('bat-val').innerText = `🔋 ${Math.round(bat.level * 100)}%`;
+                    updateBat();
+                    bat.addEventListener('levelchange', updateBat);
+                });
+            }
+            // Sinyal
+            const updateNet = () => {
+                const status = navigator.onLine ? "ONLINE" : "OFFLINE";
+                document.getElementById('net-val').innerText = `📶 ${status}`;
+                document.getElementById('net-val').style.color = navigator.onLine ? "#22c55e" : "#ff3b30";
+            };
+            updateNet();
+            window.addEventListener('online', updateNet);
+            window.addEventListener('offline', updateNet);
+        }
+
+        function checkLicense() {
+            const key = document.getElementById('license-key').value.trim().toUpperCase();
+            if (LICENSE_DB[key]) {
+                localStorage.setItem('frendo_auth', key);
+                unlockAI();
+            } else { alert("ACCESS DENIED!"); }
+        }
+
+        function unlockAI() {
+            document.getElementById('activation-panel').style.display = 'none';
+            document.getElementById('ai-input-area').style.display = 'flex';
+            document.getElementById('hist-btn').style.display = 'block';
+            document.getElementById('logout-btn').style.display = 'block';
+            document.getElementById('status-light').style.background = '#22c55e';
+            document.getElementById('status-light').style.boxShadow = '0 0 10px #22c55e';
+            if (document.querySelectorAll('.ai-msg').length === 0) createMsg('ai', "Access Granted. **FRENDO.AI** Online.");
+        }
+
+        function logout() {
+            if(confirm("Logout dari sistem?")) {
+                localStorage.removeItem('frendo_auth');
+                // Reset UI ke Panel Aktivasi
+                document.getElementById('ai-content').innerHTML = `
+                    <div id="activation-panel" style="text-align: center; margin-top: 60px;">
+                        <p style="font-size: 10px; font-weight: 800; color: #aaa; letter-spacing: 2px; margin-bottom: 20px;">LICENSE KEY REQUIRED</p>
+                        <input type="text" id="license-key" style="width: 80%; padding: 15px; border-radius: 18px; border: 1px solid #eee; margin-bottom: 15px; text-align: center; outline: none; font-weight: 700;" placeholder="ENTER CODE">
+                        <button class="btn" style="width: 85%;" onclick="checkLicense()">ACTIVATE SYSTEM</button>
+                        <div class="corp-footer">FRENDO.CORPORATION.inc</div>
+                    </div>`;
+                document.getElementById('ai-input-area').style.display = 'none';
+                document.getElementById('hist-btn').style.display = 'none';
+                document.getElementById('logout-btn').style.display = 'none';
+                document.getElementById('status-light').style.background = '#ff3b30';
+                document.getElementById('status-light').style.boxShadow = '0 0 10px #ff3b30';
+            }
+        }
+
+        function createMsg(type, text) {
+            const chat = document.getElementById('ai-content');
+            const label = document.createElement('div');
+            label.className = 'u-label'; label.innerText = type === 'ai' ? 'FRENDO_AI:' : 'YOU:';
+            const div = document.createElement('div');
+            div.className = 'ai-msg';
+            if(type === 'user') div.style.background = "rgba(0,0,0,0.04)";
+            chat.appendChild(label); chat.appendChild(div);
+            
+            if(type === 'ai') {
+                let i = 0; div.classList.add('typing');
+                function t() {
+                    if(i < text.length) {
+                        div.innerHTML = text.substring(0, i+4).replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+                        i += 4; chat.scrollTop = chat.scrollHeight; setTimeout(t, 1);
+                    } else { div.classList.remove('typing'); }
+                } t();
+            } else { div.innerText = text; chat.scrollTop = chat.scrollHeight; }
+        }
+
+        async function askGroq() {
+            const input = document.getElementById('ai-input');
+            const q = input.value.trim(); if(!q) return;
+            input.value = ""; createMsg('user', q);
+            currentConvo.push({role: "user", content: q});
+            const chat = document.getElementById('ai-content');
+            const loader = document.createElement('div');
+            loader.innerHTML = `<div style="font-size:10px; opacity:0.3; margin-bottom:20px;">• THINKING...</div>`;
+            chat.appendChild(loader);
+
+            try {
+                const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${GROQ_KEY}` },
+                    body: JSON.stringify({ model: "llama-3.3-70b-versatile", messages: currentConvo, temperature: 0.5 })
+                });
+                const data = await res.json();
+                loader.remove();
+                const ans = data.choices[0].message.content;
+                currentConvo.push({role: "assistant", content: ans});
+                createMsg('ai', ans);
+                saveToHistory(q, ans);
+            } catch(e) { loader.innerText = "ERROR."; }
+        }
+
+        function saveToHistory(q, a) {
+            chatHistory.unshift({ q, a, time: new Date().toLocaleTimeString() });
+            localStorage.setItem('frendo_history', JSON.stringify(chatHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('history-list');
+            list.innerHTML = chatHistory.map(item => `<div class='history-item' style='padding:15px; background:rgba(0,0,0,0.02); border-radius:18px; margin-bottom:10px;'><strong>${item.q}</strong></div>`).join('');
+        }
+
+        function toggleSidebar() { 
+            document.getElementById('ai-sidebar').classList.toggle('active');
+            updateSystemInfo();
+            const auth = localStorage.getItem('frendo_auth');
+            if(auth && LICENSE_DB[auth]) unlockAI();
+        }
+        function toggleHistory() { document.getElementById('history-drawer').classList.toggle('active'); }
+        function closeSidebar() { document.getElementById('ai-sidebar').classList.remove('active'); }
+        function clearHistory() { localStorage.removeItem('frendo_history'); chatHistory = []; renderHistory(); }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && e.key.toLowerCase() === 's') toggleSidebar();
+            if (e.key === 'Enter' && document.activeElement.id === 'ai-input') askGroq();
+        });
+
+        window.onload = updateSystemInfo;
+    </script>
+</body>
+</html>
